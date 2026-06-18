@@ -23,6 +23,13 @@ header {
     font-weight: bold;
 }
 
+.live-clock {
+    font-size: 12px;
+    color: #00aa44;
+    margin-top: 5px;
+    font-weight: normal;
+}
+
 .token {
     font-size: 14px;
     padding: 15px;
@@ -42,7 +49,6 @@ header {
     padding: 15px;
 }
 
-/* Remove right border on the last element of the row */
 .box:last-child {
     border-right: none;
 }
@@ -81,6 +87,15 @@ header {
     justify-content: space-between;
 }
 
+.tx-left {
+    display: flex;
+    gap: 10px;
+}
+
+.time-stamp {
+    color: #555;
+}
+
 .buy { color: #00ff66; }
 .sell { color: #ff3333; }
 .accumulate { color: #3399ff; }
@@ -90,22 +105,22 @@ header {
 <body>
 
 <header>
-WHALETRACKERZONE // LIVE ON-CHAIN PROTOCOL
+    <div>WHALETRACKERZONE // LIVE ON-CHAIN PROTOCOL</div>
+    <div id="clock" class="live-clock">SYNCING TIME...</div>
 </header>
 
 <div class="token">
-    TOKEN: <b>SIREN / USDT PAIR</b>
+    TOKEN: <b>SIREN / USDT (BSC: 0x997a...e1)</b>
 </div>
 
-<!-- Using CSS Grid for a clean and responsive layout -->
 <div class="grid-container">
     <div class="box">
         <div class="title">Current Price</div>
-        <div id="price-val" class="value">$0.2542</div>
+        <div id="price-val" class="value">$0.0465</div>
     </div>
     <div class="box">
         <div class="title">Market Cap</div>
-        <div id="mcap-val" class="value">$25.42M</div>
+        <div id="mcap-val" class="value">$33.74M</div>
     </div>
     <div class="box">
         <div class="title">Whale Count</div>
@@ -113,40 +128,46 @@ WHALETRACKERZONE // LIVE ON-CHAIN PROTOCOL
     </div>
     <div class="box">
         <div class="title">1H Buy Volume</div>
-        <div id="buy-1h-val" class="value">$12.40M</div>
+        <div id="buy-1h-val" class="value">$2.40M</div>
     </div>
     <div class="box">
         <div class="title">1H Sell Volume</div>
-        <div id="sell-1h-val" class="value">$8.10M</div>
+        <div id="sell-1h-val" class="value">$1.80M</div>
     </div>
     <div class="box">
         <div class="title">1H Net Flow</div>
-        <div id="netflow-val" class="value">+4.30M</div>
+        <div id="netflow-val" class="value">+0.60M</div>
     </div>
 </div>
 
 <div class="feed-header">LIVE TRANSACTION LOG:</div>
 <div class="feed" id="tx-feed">
-    <!-- Static initial data -->
-    <div class="tx accumulate"><span>SIREN 0xC3 ACCUMULATE</span> <span>1.2M tokens</span></div>
-    <div class="tx sell"><span>SIREN 0xB7 SELL</span> <span>180K tokens</span></div>
-    <div class="tx buy"><span>SIREN 0xA1 BUY</span> <span>250K tokens</span></div>
+    <!-- Log akan diisi secara otomatis oleh JavaScript -->
 </div>
 
 <script>
-// --- INITIAL CONFIGURATION (EMULATED DATA) ---
-let currentPrice = 0.2542;
-const totalSupply = 100000000; // 100 Million total supply of SIREN tokens
-let buyVolume1h = 12400000;    // Initial value in USD
-let sellVolume1h = 8100000;    // Initial value in USD
-let whaleCount = 1284;
+// --- INITIAL CONFIGURATION ---
+let currentPrice = 0.04652;     
+const totalSupply = 725000000;  
+let buyVolume1h = 2400000;      
+let sellVolume1h = 1800000;     
+let whaleCount = 382;
 
-// Helper function to format currency numbers
+// Fungsi helper untuk mendapatkan waktu saat ini (HH:MM:SS)
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour12: false });
+}
+
+// Update jam live di header setiap 1 detik
+setInterval(() => {
+    document.getElementById("clock").innerText = "LOCAL TIME: " + getCurrentTime();
+}, 1000);
+
 function formatUSD(val) {
     return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 }
 
-// Helper function to format compact numbers (M for Millions, K for Thousands)
 function formatCompactUSD(val) {
     if (val >= 1000000) {
         return '$' + (val / 1000000).toFixed(2) + 'M';
@@ -156,16 +177,11 @@ function formatCompactUSD(val) {
     return '$' + val.toFixed(2);
 }
 
-// Function to update all dashboard data displays
 function updateDashboard() {
-    // 1. Calculate Market Cap (Price * Total Supply)
     let marketCap = currentPrice * totalSupply;
-    
-    // 2. Calculate Net Flow (Buy - Sell)
     let netFlow = buyVolume1h - sellVolume1h;
     let netFlowSign = netFlow >= 0 ? '+' : '';
 
-    // 3. Inject into HTML DOM
     document.getElementById("price-val").innerText = formatUSD(currentPrice);
     document.getElementById("mcap-val").innerText = formatCompactUSD(marketCap);
     document.getElementById("whale-val").innerText = whaleCount.toLocaleString('en-US');
@@ -173,7 +189,6 @@ function updateDashboard() {
     document.getElementById("sell-1h-val").innerText = formatCompactUSD(sellVolume1h);
     document.getElementById("netflow-val").innerText = netFlowSign + formatCompactUSD(netFlow);
     
-    // Colorize netflow for better visualization
     if(netFlow >= 0) {
         document.getElementById("netflow-val").style.color = "#00ff66";
     } else {
@@ -181,62 +196,65 @@ function updateDashboard() {
     }
 }
 
-// Run the initial update when the page loads
 updateDashboard();
 
-// --- REAL-TIME TICKER SIMULATION ---
-setInterval(() => {
+// --- TICKER SIMULATION ---
+// Fungsi untuk menambahkan baris transaksi baru
+function addTransaction() {
     const feed = document.getElementById("tx-feed");
-
     const actions = ["BUY", "SELL", "ACCUMULATE"];
     const action = actions[Math.floor(Math.random() * actions.length)];
-
     const wallet = "0x" + Math.random().toString(16).slice(2, 6).toUpperCase();
     
-    // Generate a random token amount between 50K and 950K tokens
     const tokenAmount = (Math.floor(Math.random() * 900) + 50) * 1000;
-    
-    // Calculate the USD value of the transaction based on current price
     const usdValue = tokenAmount * currentPrice;
 
-    // Impact on price & volume based on the transaction action
     let actionClass = '';
     if (action === "BUY") {
         actionClass = 'buy';
         buyVolume1h += usdValue;
-        currentPrice *= (1 + (Math.random() * 0.005)); // Price increases by max 0.5%
+        currentPrice *= (1 + (Math.random() * 0.003)); 
     } else if (action === "SELL") {
         actionClass = 'sell';
         sellVolume1h += usdValue;
-        currentPrice *= (1 - (Math.random() * 0.005)); // Price drops by max 0.5%
+        currentPrice *= (1 - (Math.random() * 0.003)); 
     } else if (action === "ACCUMULATE") {
         actionClass = 'accumulate';
-        buyVolume1h += usdValue; // Accumulation is counted towards buying pressure
-        currentPrice *= (1 + (Math.random() * 0.002)); 
-        if (Math.random() > 0.7) whaleCount++; // Occasionally adds a new whale to the count
+        buyVolume1h += usdValue;
+        currentPrice *= (1 + (Math.random() * 0.001)); 
+        if (Math.random() > 0.8) whaleCount++;
     }
 
-    // Create a new transaction element for the live feed
     const div = document.createElement("div");
     div.className = `tx ${actionClass}`;
-    
-    // Format the compact token display (e.g., 250K)
     const tokenDisplay = (tokenAmount / 1000) + "K";
+    const timeStamp = getCurrentTime();
     
-    div.innerHTML = `<span>SIREN ${wallet} ${action}</span> <span>${tokenDisplay} tokens (${formatCompactUSD(usdValue)})</span>`;
-
-    // Insert at the top of the feed log
+    // Struktur HTML untuk log transaksi dengan timestamp
+    div.innerHTML = `
+        <div class="tx-left">
+            <span class="time-stamp">[${timeStamp}]</span>
+            <span>SIREN ${wallet} ${action}</span>
+        </div>
+        <span>${tokenDisplay} tokens (${formatCompactUSD(usdValue)})</span>
+    `;
+    
     feed.prepend(div);
 
-    // Limit the feed log so it doesn't get infinitely long (max 20 rows)
     if (feed.children.length > 20) {
         feed.removeChild(feed.lastChild);
     }
 
-    // Update all dashboard numbers after a new transaction
     updateDashboard();
+}
 
-}, 2500);
+// Inisialisasi 3 transaksi awal agar tidak kosong saat baru dibuka
+for(let i=0; i<3; i++) {
+    addTransaction();
+}
+
+// Jalankan simulasi transaksi baru setiap 2.5 detik
+setInterval(addTransaction, 2500);
 </script>
 
 </body>
