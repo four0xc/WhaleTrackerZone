@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WHALE TRACKER</title>
+
+<style>
+body {
+    margin: 0;
+    background: #000;
+    color: #00ff66;
+    font-family: monospace;
+}
+
+header {
+    padding: 10px;
+    border-bottom: 1px solid #00ff66;
+    text-align: center;
+}
+
+.box {
+    border-bottom: 1px solid #00ff66;
+    padding: 10px;
+}
+
+.title {
+    font-size: 12px;
+}
+
+.value {
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.token {
+    font-size: 14px;
+    padding: 10px;
+    border-bottom: 1px solid #00ff66;
+}
+
+.feed {
+    padding: 10px;
+    font-size: 12px;
+}
+
+.tx {
+    padding: 4px 0;
+    border-bottom: 1px dotted #00ff66;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+WHALETRACKERZONE // LIVE ON-CHAIN
+</header>
+
+<div class="token">
+TOKEN: <b>SIREN / USDT PAIR</b>
+</div>
+
+<div class="box">
+    <div class="title">WHALE COUNT</div>
+    <div class="value">1284</div>
+</div>
+
+<div class="box">
+    <div class="title">NET FLOW</div>
+    <div class="value">+4.3M</div>
+</div>
+
+<div class="box">
+    <div class="title">BUY / SELL PRESSURE</div>
+    <div class="value">+12.4M / -8.1M</div>
+</div>
+
+<div class="feed">
+    <div class="tx">SIREN 0xA1 BUY 250K</div>
+    <div class="tx">SIREN 0xB7 SELL 180K</div>
+    <div class="tx">SIREN 0xC3 ACCUMULATE 1.2M</div>
+</div>
+
+<script>
+setInterval(() => {
+    const feed = document.querySelector(".feed");
+
+    const actions = ["BUY", "SELL", "ACCUMULATE"];
+    const action = actions[Math.floor(Math.random()*actions.length)];
+
+    const wallet = "0x" + Math.random().toString(16).slice(2,6);
+    const amount = Math.floor(Math.random()*900) + "K";
+
+    const div = document.createElement("div");
+    div.className = "tx";
+    div.innerText = `SIREN ${wallet} ${action} ${amount}`;
+
+    feed.prepend(div);
+}, 2500);
+</script>
+
+</body>
+</html>
