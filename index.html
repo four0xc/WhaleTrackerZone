@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WHALE TRACKER Pro - ULTIMATE LIVE</title>
+<title>WHALE TRACK Pro - ULTIMATE LIVE WITH TX LINKS</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 
@@ -38,9 +38,29 @@ header {
 
 .feed-header { padding: 15px 15px 5px 15px; font-size: 14px; font-weight: bold; color: #00ff66; border-bottom: 1px solid #003311; }
 .feed { padding: 0 15px; font-size: 12px; max-height: 400px; overflow-y: auto; }
-.tx { padding: 8px 0; border-bottom: 1px dotted #003311; display: flex; justify-content: space-between; }
-.tx-left { display: flex; gap: 10px; }
+.tx { padding: 8px 0; border-bottom: 1px dotted #003311; display: flex; justify-content: space-between; align-items: center; }
+.tx-left { display: flex; gap: 10px; align-items: center; }
+.tx-right { display: flex; gap: 15px; align-items: center; text-align: right; }
 .time-stamp { color: #555; }
+
+/* Styling Link agar tetap estetik khas terminal */
+.bsc-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+}
+.bsc-link:hover {
+    border-bottom: 1px dashed currentColor;
+    cursor: pointer;
+}
+
+.tx-hash-link {
+    color: #555555;
+    font-size: 11px;
+}
+.tx-hash-link:hover {
+    color: #00ff66;
+}
 
 /* Dynamic Colors */
 .buy { color: #00ff66; }
@@ -94,7 +114,7 @@ header {
     </div>
 </div>
 
-<div class="feed-header">🔴 LIVE ON-CHAIN TX LOG (Listening to BSC Mainnet)</div>
+<div class="feed-header">🔴 LIVE ON-CHAIN TX LOG (Klik Wallet/Tx untuk melihat detail BscScan)</div>
 <div class="feed" id="tx-feed">
     <div style="color: #444; font-style: italic; padding: 10px 0;">Waiting for new blocks to be mined...</div>
 </div>
@@ -124,7 +144,6 @@ async function fetchMarketData() {
         const data = await res.json();
         
         if (data.pairs && data.pairs.length > 0) {
-            // Get the most active Liquidity Pool pair
             const pair = data.pairs[0];
             PAIR_ADDRESS = pair.pairAddress.toLowerCase();
             document.getElementById("lp-address-display").innerText = `MAIN LP: ${PAIR_ADDRESS.slice(0,6)}...${PAIR_ADDRESS.slice(-4)}`;
@@ -135,8 +154,6 @@ async function fetchMarketData() {
             document.getElementById("mcap-val").innerText = formatCompactUSD(pair.fdv || (currentPrice * 725000000));
 
             // Calculate 1H Volumes dynamically
-            // DexScreener gives us total 1H volume, and the number of buy/sell TXs.
-            // We estimate the Buy/Sell USD ratio based on the TX count ratio.
             const totalVol1H = pair.volume.h1 || 0;
             const buysCount = pair.txns.h1.buys || 1;
             const sellsCount = pair.txns.h1.sells || 1;
@@ -165,7 +182,6 @@ async function fetchMarketData() {
 // --- 2. LISTEN TO LIVE BLOCKCHAIN EVENTS ---
 async function connectToBlockchain() {
     try {
-        // Wait for Dexscreener to fetch PAIR_ADDRESS first so we can identify Buys/Sells
         await fetchMarketData(); 
         
         const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
@@ -176,13 +192,16 @@ async function connectToBlockchain() {
         statusEl.innerText = "● CONNECTED & LISTENING TO BSC MAINNET";
         statusEl.style.color = "#00ff66";
 
-        // Listen for all Transfers
-        contract.on("Transfer", (from, to, value, event) => {
+        // Listen for all Transfers (Menangkap objek log/event di parameter ke-4)
+        contract.on("Transfer", (from, to, value, log) => {
             const amount = parseFloat(ethers.formatUnits(value, 18));
             
-            // Filter noise (Only show transactions bigger than 1000 tokens)
+            // Ambil Transaction Hash asli dari blockchain
+            const txHash = log.log.transactionHash;
+
+            // Filter kebisingan (Hanya transaksi >= 1000 token)
             if(amount >= 1000) {
-                processRealTransaction(from.toLowerCase(), to.toLowerCase(), amount);
+                processRealTransaction(from.toLowerCase(), to.toLowerCase(), amount, txHash);
             }
         });
 
@@ -195,65 +214,72 @@ async function connectToBlockchain() {
 }
 
 // --- 3. PROCESS AND RENDER LIVE TRANSACTIONS ---
-function processRealTransaction(from, to, amount) {
+function processRealTransaction(from, to, amount, txHash) {
     const feed = document.getElementById("tx-feed");
     if(feed.innerHTML.includes("Waiting for new blocks")) feed.innerHTML = "";
 
     const usdValue = amount * currentPrice;
-    const shortFrom = from.slice(0, 6).toUpperCase();
-    const shortTo = to.slice(0, 6).toUpperCase();
     
     let action = "TRANSFER";
     let actionClass = "transfer";
-    let targetDisplay = shortFrom;
+    let targetWallet = from; // Alamat dompet utama pelakunya
 
-    // MAGICAL LOGIC: Identify Buys vs Sells using the Liquidity Pool Address
+    // Identifikasi Buy vs Sell menggunakan Liquidity Pool Address
     if (from === PAIR_ADDRESS) {
         action = "BUY";
         actionClass = "buy";
-        targetDisplay = shortTo; // Show who bought it
+        targetWallet = to; // Pembeli
     } else if (to === PAIR_ADDRESS) {
         action = "SELL";
         actionClass = "sell";
-        targetDisplay = shortFrom; // Show who sold it
+        targetWallet = from; // Penjual
     }
 
-    // WHALE ALERT OVERRIDE (If Transaction > $10,000 USD)
+    // WHALE ALERT OVERRIDE (Jika Transaksi > $10,000 USD)
     if (usdValue >= 10000) {
         action = `WHALE ${action}`;
         actionClass = "whale-alert";
         
-        // Dynamically increment whale count if we see massive accumulation
         if (action.includes("BUY") || action.includes("TRANSFER")) {
             whaleCount++;
             document.getElementById("whale-val").innerText = whaleCount.toLocaleString('en-US');
             
-            // Visual pop effect on the Whale Count box
             const whaleBox = document.getElementById("whale-val");
             whaleBox.style.color = "#00ffff";
             setTimeout(() => { whaleBox.style.color = "#00ff66"; }, 1000);
         }
     }
 
+    // Pemotongan visual teks alamat agar rapi di layar monitor
+    const displayWallet = targetWallet.slice(0, 6).toUpperCase() + "..." + targetWallet.slice(-4).toUpperCase();
+    const displayTx = txHash.slice(0, 8) + "...";
+
     const div = document.createElement("div");
     div.className = `tx ${actionClass}`;
     const tokenDisplay = (amount >= 1000000) ? (amount / 1000000).toFixed(2) + "M" : (amount / 1000).toFixed(1) + "K";
     const timeStamp = getCurrentTime();
     
+    // STRUKTUR BARU: Menyisipkan link klika-bel BscScan menggunakan class .bsc-link dan .tx-hash-link
     div.innerHTML = `
         <div class="tx-left">
             <span class="time-stamp">[${timeStamp}]</span>
-            <span>SIREN ${targetDisplay} ${action}</span>
+            <span>SIREN 
+                <a class="bsc-link" href="https://bscscan.com/address/${targetWallet}" target="_blank" title="Klik untuk cek Wallet asli">${displayWallet}</a> 
+                <b>${action}</b>
+            </span>
         </div>
-        <span>${tokenDisplay} tokens (${formatCompactUSD(usdValue)})</span>
+        <div class="tx-right">
+            <span>${tokenDisplay} tokens (${formatCompactUSD(usdValue)})</span>
+            <a class="bsc-link tx-hash-link" href="https://bscscan.com/tx/${txHash}" target="_blank" title="Klik untuk salin/cek TxHash asli">[TX: ${displayTx}]</a>
+        </div>
     `;
     
-    // Animate new entries
+    // Animasi masuk halus
     div.style.opacity = "0";
     feed.prepend(div);
     setTimeout(() => div.style.opacity = "1", 50);
 
-    // Keep log clean (Max 30 items)
+    // Batasi log maksimal 30 item
     if (feed.children.length > 30) {
         feed.removeChild(feed.lastChild);
     }
@@ -262,7 +288,7 @@ function processRealTransaction(from, to, amount) {
 // --- INITIALIZE ---
 connectToBlockchain();
 
-// Refresh DexScreener API every 15 seconds to keep 1H Volume and Price updated
+// Refresh market data dari API setiap 15 detik
 setInterval(fetchMarketData, 15000);
 
 </script>
