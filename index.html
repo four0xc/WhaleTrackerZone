@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WHALE TRACKER Pro</title>
+<title>WHALE TRACKER Pro - ULTIMATE LIVE</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 
 <style>
 body {
@@ -23,238 +25,246 @@ header {
     font-weight: bold;
 }
 
-.live-clock {
-    font-size: 12px;
-    color: #00aa44;
-    margin-top: 5px;
-    font-weight: normal;
-}
+.live-clock { font-size: 12px; color: #00aa44; margin-top: 5px; font-weight: normal; }
+.live-status { font-size: 10px; color: #ffaa00; margin-top: 5px; animation: blink 2s infinite; }
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-.token {
-    font-size: 14px;
-    padding: 15px;
-    border-bottom: 1px solid #00ff66;
-    background: #051a05;
-}
+.token { font-size: 14px; padding: 15px; border-bottom: 1px solid #00ff66; background: #051a05; display: flex; justify-content: space-between; }
+.grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); border-bottom: 1px solid #00ff66; }
+.box { border-right: 1px solid #00ff66; border-bottom: 1px solid #00ff66; padding: 15px; background: #010a01;}
+.box:last-child { border-right: none; }
+.title { font-size: 11px; color: #00aa44; text-transform: uppercase; letter-spacing: 1px; }
+.value { font-size: 20px; margin-top: 8px; font-weight: bold; }
 
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    border-bottom: 1px solid #00ff66;
-}
+.feed-header { padding: 15px 15px 5px 15px; font-size: 14px; font-weight: bold; color: #00ff66; border-bottom: 1px solid #003311; }
+.feed { padding: 0 15px; font-size: 12px; max-height: 400px; overflow-y: auto; }
+.tx { padding: 8px 0; border-bottom: 1px dotted #003311; display: flex; justify-content: space-between; }
+.tx-left { display: flex; gap: 10px; }
+.time-stamp { color: #555; }
 
-.box {
-    border-right: 1px solid #00ff66;
-    border-bottom: 1px solid #00ff66;
-    padding: 15px;
-}
-
-.box:last-child {
-    border-right: none;
-}
-
-.title {
-    font-size: 11px;
-    color: #00aa44;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.value {
-    font-size: 20px;
-    margin-top: 8px;
-    font-weight: bold;
-}
-
-.feed-header {
-    padding: 15px 15px 5px 15px;
-    font-size: 14px;
-    font-weight: bold;
-    color: #00ff66;
-}
-
-.feed {
-    padding: 0 15px;
-    font-size: 12px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.tx {
-    padding: 6px 0;
-    border-bottom: 1px dotted #003311;
-    display: flex;
-    justify-content: space-between;
-}
-
-.tx-left {
-    display: flex;
-    gap: 10px;
-}
-
-.time-stamp {
-    color: #555;
-}
-
+/* Dynamic Colors */
 .buy { color: #00ff66; }
 .sell { color: #ff3333; }
-.accumulate { color: #3399ff; }
+.transfer { color: #aaaaaa; }
+.whale-alert { color: #00ffff; font-weight: bold; background: rgba(0, 255, 255, 0.1); padding: 8px; margin-top: 2px;}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #00ff66; }
 </style>
 </head>
 
 <body>
 
 <header>
-    <div>WHALETRACKERZONE // LIVE ON-CHAIN PROTOCOL</div>
+    <div>WHALETRACKERZONE // ON-CHAIN PROTOCOL</div>
     <div id="clock" class="live-clock">SYNCING TIME...</div>
+    <div id="connection-status" class="live-status">INITIALIZING SYSTEMS...</div>
 </header>
 
 <div class="token">
-    TOKEN: <b>SIREN / USDT (BSC: 0x997a...e1)</b>
+    <span>TOKEN: <b>SIREN (BSC)</b></span>
+    <span id="lp-address-display" style="color:#00aa44; font-size: 10px;">LP: SEARCHING...</span>
 </div>
 
 <div class="grid-container">
     <div class="box">
         <div class="title">Current Price</div>
-        <div id="price-val" class="value">$0.0465</div>
+        <div id="price-val" class="value">LOADING...</div>
     </div>
     <div class="box">
         <div class="title">Market Cap</div>
-        <div id="mcap-val" class="value">$33.74M</div>
+        <div id="mcap-val" class="value">LOADING...</div>
     </div>
     <div class="box">
-        <div class="title">Whale Count</div>
-        <div id="whale-val" class="value">1,284</div>
+        <div class="title">Est. Whale Count (>1M)</div>
+        <div id="whale-val" class="value">382</div>
     </div>
     <div class="box">
         <div class="title">1H Buy Volume</div>
-        <div id="buy-1h-val" class="value">$2.40M</div>
+        <div id="buy-1h-val" class="value" style="color:#00ff66">LOADING...</div>
     </div>
     <div class="box">
         <div class="title">1H Sell Volume</div>
-        <div id="sell-1h-val" class="value">$1.80M</div>
+        <div id="sell-1h-val" class="value" style="color:#ff3333">LOADING...</div>
     </div>
     <div class="box">
         <div class="title">1H Net Flow</div>
-        <div id="netflow-val" class="value">+0.60M</div>
+        <div id="netflow-val" class="value">LOADING...</div>
     </div>
 </div>
 
-<div class="feed-header">LIVE TRANSACTION LOG:</div>
+<div class="feed-header">🔴 LIVE ON-CHAIN TX LOG (Listening to BSC Mainnet)</div>
 <div class="feed" id="tx-feed">
-    <!-- Log akan diisi secara otomatis oleh JavaScript -->
+    <div style="color: #444; font-style: italic; padding: 10px 0;">Waiting for new blocks to be mined...</div>
 </div>
 
 <script>
-// --- INITIAL CONFIGURATION ---
-let currentPrice = 0.04652;     
-const totalSupply = 725000000;  
-let buyVolume1h = 2400000;      
-let sellVolume1h = 1800000;     
+// --- CONFIGURATION ---
+const TOKEN_ADDRESS = "0x997a58129890bbda032231a52ed1ddc845fc18e1"; // SIREN
+let PAIR_ADDRESS = ""; // Will be fetched dynamically from DexScreener
+let currentPrice = 0;
 let whaleCount = 382;
 
-// Fungsi helper untuk mendapatkan waktu saat ini (HH:MM:SS)
-function getCurrentTime() {
-    const now = new Date();
-    return now.toLocaleTimeString('en-US', { hour12: false });
-}
+// Formatting utilities
+function getCurrentTime() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+setInterval(() => { document.getElementById("clock").innerText = "LOCAL TIME: " + getCurrentTime(); }, 1000);
 
-// Update jam live di header setiap 1 detik
-setInterval(() => {
-    document.getElementById("clock").innerText = "LOCAL TIME: " + getCurrentTime();
-}, 1000);
-
-function formatUSD(val) {
-    return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-}
-
+function formatUSD(val) { return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }); }
 function formatCompactUSD(val) {
-    if (val >= 1000000) {
-        return '$' + (val / 1000000).toFixed(2) + 'M';
-    } else if (val >= 1000) {
-        return '$' + (val / 1000).toFixed(2) + 'K';
-    }
+    if (val >= 1000000) return '$' + (val / 1000000).toFixed(2) + 'M';
+    if (val >= 1000) return '$' + (val / 1000).toFixed(2) + 'K';
     return '$' + val.toFixed(2);
 }
 
-function updateDashboard() {
-    let marketCap = currentPrice * totalSupply;
-    let netFlow = buyVolume1h - sellVolume1h;
-    let netFlowSign = netFlow >= 0 ? '+' : '';
+// --- 1. FETCH FULL REAL-TIME DATA FROM DEXSCREENER ---
+async function fetchMarketData() {
+    try {
+        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
+        const data = await res.json();
+        
+        if (data.pairs && data.pairs.length > 0) {
+            // Get the most active Liquidity Pool pair
+            const pair = data.pairs[0];
+            PAIR_ADDRESS = pair.pairAddress.toLowerCase();
+            document.getElementById("lp-address-display").innerText = `MAIN LP: ${PAIR_ADDRESS.slice(0,6)}...${PAIR_ADDRESS.slice(-4)}`;
 
-    document.getElementById("price-val").innerText = formatUSD(currentPrice);
-    document.getElementById("mcap-val").innerText = formatCompactUSD(marketCap);
-    document.getElementById("whale-val").innerText = whaleCount.toLocaleString('en-US');
-    document.getElementById("buy-1h-val").innerText = formatCompactUSD(buyVolume1h);
-    document.getElementById("sell-1h-val").innerText = formatCompactUSD(sellVolume1h);
-    document.getElementById("netflow-val").innerText = netFlowSign + formatCompactUSD(netFlow);
-    
-    if(netFlow >= 0) {
-        document.getElementById("netflow-val").style.color = "#00ff66";
-    } else {
-        document.getElementById("netflow-val").style.color = "#ff3333";
+            // Price & Market Cap
+            currentPrice = parseFloat(pair.priceUsd);
+            document.getElementById("price-val").innerText = formatUSD(currentPrice);
+            document.getElementById("mcap-val").innerText = formatCompactUSD(pair.fdv || (currentPrice * 725000000));
+
+            // Calculate 1H Volumes dynamically
+            // DexScreener gives us total 1H volume, and the number of buy/sell TXs.
+            // We estimate the Buy/Sell USD ratio based on the TX count ratio.
+            const totalVol1H = pair.volume.h1 || 0;
+            const buysCount = pair.txns.h1.buys || 1;
+            const sellsCount = pair.txns.h1.sells || 1;
+            const totalCount = buysCount + sellsCount;
+
+            const buyVolRatio = buysCount / totalCount;
+            const sellVolRatio = sellsCount / totalCount;
+
+            const buyVolume1H = totalVol1H * buyVolRatio;
+            const sellVolume1H = totalVol1H * sellVolRatio;
+            const netFlow = buyVolume1H - sellVolume1H;
+
+            // Update DOM
+            document.getElementById("buy-1h-val").innerText = formatCompactUSD(buyVolume1H);
+            document.getElementById("sell-1h-val").innerText = formatCompactUSD(sellVolume1H);
+            
+            const netFlowEl = document.getElementById("netflow-val");
+            netFlowEl.innerText = (netFlow >= 0 ? "+" : "") + formatCompactUSD(netFlow);
+            netFlowEl.style.color = netFlow >= 0 ? "#00ff66" : "#ff3333";
+        }
+    } catch (error) {
+        console.error("API Fetch Error:", error);
     }
 }
 
-updateDashboard();
+// --- 2. LISTEN TO LIVE BLOCKCHAIN EVENTS ---
+async function connectToBlockchain() {
+    try {
+        // Wait for Dexscreener to fetch PAIR_ADDRESS first so we can identify Buys/Sells
+        await fetchMarketData(); 
+        
+        const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+        const abi = ["event Transfer(address indexed from, address indexed to, uint256 value)"];
+        const contract = new ethers.Contract(TOKEN_ADDRESS, abi, provider);
 
-// --- TICKER SIMULATION ---
-// Fungsi untuk menambahkan baris transaksi baru
-function addTransaction() {
+        const statusEl = document.getElementById("connection-status");
+        statusEl.innerText = "● CONNECTED & LISTENING TO BSC MAINNET";
+        statusEl.style.color = "#00ff66";
+
+        // Listen for all Transfers
+        contract.on("Transfer", (from, to, value, event) => {
+            const amount = parseFloat(ethers.formatUnits(value, 18));
+            
+            // Filter noise (Only show transactions bigger than 1000 tokens)
+            if(amount >= 1000) {
+                processRealTransaction(from.toLowerCase(), to.toLowerCase(), amount);
+            }
+        });
+
+    } catch (error) {
+        const statusEl = document.getElementById("connection-status");
+        statusEl.innerText = "CONNECTION FAILED. RETRYING...";
+        statusEl.style.color = "#ff3333";
+        setTimeout(connectToBlockchain, 5000);
+    }
+}
+
+// --- 3. PROCESS AND RENDER LIVE TRANSACTIONS ---
+function processRealTransaction(from, to, amount) {
     const feed = document.getElementById("tx-feed");
-    const actions = ["BUY", "SELL", "ACCUMULATE"];
-    const action = actions[Math.floor(Math.random() * actions.length)];
-    const wallet = "0x" + Math.random().toString(16).slice(2, 6).toUpperCase();
-    
-    const tokenAmount = (Math.floor(Math.random() * 900) + 50) * 1000;
-    const usdValue = tokenAmount * currentPrice;
+    if(feed.innerHTML.includes("Waiting for new blocks")) feed.innerHTML = "";
 
-    let actionClass = '';
-    if (action === "BUY") {
-        actionClass = 'buy';
-        buyVolume1h += usdValue;
-        currentPrice *= (1 + (Math.random() * 0.003)); 
-    } else if (action === "SELL") {
-        actionClass = 'sell';
-        sellVolume1h += usdValue;
-        currentPrice *= (1 - (Math.random() * 0.003)); 
-    } else if (action === "ACCUMULATE") {
-        actionClass = 'accumulate';
-        buyVolume1h += usdValue;
-        currentPrice *= (1 + (Math.random() * 0.001)); 
-        if (Math.random() > 0.8) whaleCount++;
+    const usdValue = amount * currentPrice;
+    const shortFrom = from.slice(0, 6).toUpperCase();
+    const shortTo = to.slice(0, 6).toUpperCase();
+    
+    let action = "TRANSFER";
+    let actionClass = "transfer";
+    let targetDisplay = shortFrom;
+
+    // MAGICAL LOGIC: Identify Buys vs Sells using the Liquidity Pool Address
+    if (from === PAIR_ADDRESS) {
+        action = "BUY";
+        actionClass = "buy";
+        targetDisplay = shortTo; // Show who bought it
+    } else if (to === PAIR_ADDRESS) {
+        action = "SELL";
+        actionClass = "sell";
+        targetDisplay = shortFrom; // Show who sold it
+    }
+
+    // WHALE ALERT OVERRIDE (If Transaction > $10,000 USD)
+    if (usdValue >= 10000) {
+        action = `WHALE ${action}`;
+        actionClass = "whale-alert";
+        
+        // Dynamically increment whale count if we see massive accumulation
+        if (action.includes("BUY") || action.includes("TRANSFER")) {
+            whaleCount++;
+            document.getElementById("whale-val").innerText = whaleCount.toLocaleString('en-US');
+            
+            // Visual pop effect on the Whale Count box
+            const whaleBox = document.getElementById("whale-val");
+            whaleBox.style.color = "#00ffff";
+            setTimeout(() => { whaleBox.style.color = "#00ff66"; }, 1000);
+        }
     }
 
     const div = document.createElement("div");
     div.className = `tx ${actionClass}`;
-    const tokenDisplay = (tokenAmount / 1000) + "K";
+    const tokenDisplay = (amount >= 1000000) ? (amount / 1000000).toFixed(2) + "M" : (amount / 1000).toFixed(1) + "K";
     const timeStamp = getCurrentTime();
     
-    // Struktur HTML untuk log transaksi dengan timestamp
     div.innerHTML = `
         <div class="tx-left">
             <span class="time-stamp">[${timeStamp}]</span>
-            <span>SIREN ${wallet} ${action}</span>
+            <span>SIREN ${targetDisplay} ${action}</span>
         </div>
         <span>${tokenDisplay} tokens (${formatCompactUSD(usdValue)})</span>
     `;
     
+    // Animate new entries
+    div.style.opacity = "0";
     feed.prepend(div);
+    setTimeout(() => div.style.opacity = "1", 50);
 
-    if (feed.children.length > 20) {
+    // Keep log clean (Max 30 items)
+    if (feed.children.length > 30) {
         feed.removeChild(feed.lastChild);
     }
-
-    updateDashboard();
 }
 
-// Inisialisasi 3 transaksi awal agar tidak kosong saat baru dibuka
-for(let i=0; i<3; i++) {
-    addTransaction();
-}
+// --- INITIALIZE ---
+connectToBlockchain();
 
-// Jalankan simulasi transaksi baru setiap 2.5 detik
-setInterval(addTransaction, 2500);
+// Refresh DexScreener API every 15 seconds to keep 1H Volume and Price updated
+setInterval(fetchMarketData, 15000);
+
 </script>
 
 </body>
